@@ -44,12 +44,20 @@
 
   img { display: block; max-width: 100%; }
 
-  /* ---------- Language switch ---------- */
-  .lang-switch {
+  /* ---------- Toolbar (edit / export / language switch) ---------- */
+  .toolbar-wrap {
     position: fixed;
     top: 14px;
     right: 14px;
     z-index: 100;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: calc(100vw - 28px);
+  }
+  .toolbar, .lang-switch {
     display: flex;
     gap: 2px;
     background: var(--navy);
@@ -57,21 +65,35 @@
     border-radius: 20px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.28);
   }
-  .lang-switch button {
+  .toolbar-wrap button {
     font-family: "IBM Plex Mono", "Noto Sans SC", monospace;
     font-size: 11px;
     font-weight: 600;
     border: none;
     background: transparent;
     color: #9FB4BB;
-    padding: 6px 11px;
+    padding: 6px 12px;
     border-radius: 16px;
     cursor: pointer;
+    white-space: nowrap;
     transition: background 0.15s, color 0.15s;
   }
-  .lang-switch button:hover { color: #fff; }
-  .lang-switch button.active { background: var(--cyan); color: var(--navy); }
-  .lang-switch button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  .toolbar-wrap button:hover { color: #fff; }
+  .toolbar-wrap button.active { background: var(--cyan); color: var(--navy); }
+  .toolbar-wrap button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+  /* ---------- Edit mode ---------- */
+  body.edit-mode .sheet {
+    outline: 2px dashed var(--cyan-deep);
+    outline-offset: -2px;
+    cursor: text;
+  }
+  body.edit-mode table.spec td:hover,
+  body.edit-mode table.spec th:hover,
+  body.edit-mode p:hover,
+  body.edit-mode li:hover {
+    background: rgba(34, 199, 219, 0.12);
+  }
 
   /* ---------- Sheet / A4 print scaffold ---------- */
   .sheet {
@@ -360,7 +382,8 @@
   @page { size: A4; margin: 0; }
   @media print {
     body { background: none; margin: 0; }
-    .lang-switch { display: none !important; }
+    .toolbar-wrap { display: none !important; }
+    body.edit-mode .sheet { outline: none; }
     html, body { height: 100%; }
     .sheet {
       margin: 0;
@@ -386,17 +409,23 @@
     .icon-strip { grid-template-columns: repeat(3, 1fr); }
     ul.feature-list { grid-template-columns: 1fr; }
     .scale-strip { grid-template-columns: repeat(2, 1fr); }
-    .lang-switch { position: static; margin: 10px auto 0 auto; width: fit-content; }
+    .toolbar-wrap { position: static; margin: 10px auto 0 auto; width: fit-content; justify-content: center; }
   }
 </style>
 </head>
 <body>
 
-<div class="lang-switch" role="group" aria-label="Language">
-  <button type="button" data-lang="en" class="active" aria-pressed="true">EN</button>
-  <button type="button" data-lang="da" aria-pressed="false">DA</button>
-  <button type="button" data-lang="de" aria-pressed="false">DE</button>
-  <button type="button" data-lang="zh" aria-pressed="false">中文</button>
+<div class="toolbar-wrap">
+  <div class="toolbar" role="group" aria-label="Page tools">
+    <button type="button" id="editToggleBtn" aria-pressed="false">Edit</button>
+    <button type="button" id="exportPdfBtn" data-i18n="btnExportPdf">Export PDF</button>
+  </div>
+  <div class="lang-switch" role="group" aria-label="Language">
+    <button type="button" data-lang="en" class="active" aria-pressed="true">EN</button>
+    <button type="button" data-lang="da" aria-pressed="false">DA</button>
+    <button type="button" data-lang="de" aria-pressed="false">DE</button>
+    <button type="button" data-lang="zh" aria-pressed="false">中文</button>
+  </div>
 </div>
 
 <!-- ================= SHEET 1 — COVER ================= -->
@@ -851,7 +880,10 @@
       feat9: `6mm bezel, seamless cabinet-to-cabinet tiling`,
       feat10: `Crestron control modules available; Cisco CEC interoperability`,
       scaleTitle: `Scale at a glance`,
-      scaleFootnote: `Screens shown to scale (including bezel) against a 175cm reference figure; smallest size in front.`
+      scaleFootnote: `Screens shown to scale (including bezel) against a 175cm reference figure; smallest size in front.`,
+      btnEdit: `Edit`,
+      btnDone: `Done`,
+      btnExportPdf: `Export PDF`
     },
     da: {
       heroLight: `S&oslash;ml&oslash;s LED, alt-i-&eacute;n`,
@@ -942,7 +974,10 @@
       feat9: `6mm kant, s&oslash;ml&oslash;s sammenstilling mellem kabinetter`,
       feat10: `Crestron-kontrolmoduler tilg&aelig;ngelige; Cisco CEC-interoperabilitet`,
       scaleTitle: `St&oslash;rrelse i overblik`,
-      scaleFootnote: `Sk&aelig;rmene er vist i skala (inkl. kant) i forhold til en referenceperson p&aring; 175cm; mindste st&oslash;rrelse forrest.`
+      scaleFootnote: `Sk&aelig;rmene er vist i skala (inkl. kant) i forhold til en referenceperson p&aring; 175cm; mindste st&oslash;rrelse forrest.`,
+      btnEdit: `Rediger`,
+      btnDone: `F&aelig;rdig`,
+      btnExportPdf: `Eksport&eacute;r PDF`
     },
     de: {
       heroLight: `Nahtloses All-in-One-LED`,
@@ -1033,7 +1068,10 @@
       feat9: `6mm Rahmen, nahtlose Kachelung zwischen den Kabinetten`,
       feat10: `Crestron-Steuerungsmodule verf&uuml;gbar; Cisco-CEC-Interoperabilit&auml;t`,
       scaleTitle: `Gr&ouml;&szlig;envergleich`,
-      scaleFootnote: `Die Bildschirme sind ma&szlig;stabsgetreu (inkl. Rahmen) im Vergleich zu einer 175cm gro&szlig;en Referenzperson dargestellt; kleinste Gr&ouml;&szlig;e im Vordergrund.`
+      scaleFootnote: `Die Bildschirme sind ma&szlig;stabsgetreu (inkl. Rahmen) im Vergleich zu einer 175cm gro&szlig;en Referenzperson dargestellt; kleinste Gr&ouml;&szlig;e im Vordergrund.`,
+      btnEdit: `Bearbeiten`,
+      btnDone: `Fertig`,
+      btnExportPdf: `PDF exportieren`
     },
     zh: {
       heroLight: `无缝一体化LED显示屏`,
@@ -1124,15 +1162,21 @@
       feat9: `6mm边框，机柜间无缝拼接`,
       feat10: `支持Crestron控制模块；兼容Cisco CEC互联互通`,
       scaleTitle: `尺寸对比一览`,
-      scaleFootnote: `屏幕按比例（含边框）与175cm参照身高对比绘制，最小尺寸置于最前。`
+      scaleFootnote: `屏幕按比例（含边框）与175cm参照身高对比绘制，最小尺寸置于最前。`,
+      btnEdit: `编辑`,
+      btnDone: `完成`,
+      btnExportPdf: `导出PDF`
     }
   };
 
   var HTML_LANG = { en: 'en', da: 'da', de: 'de', zh: 'zh-CN' };
   var STORAGE_KEY = 'exview-edge-lang';
+  var currentLang = 'en';
+  var editMode = false;
 
   function applyLang(lang) {
-    var dict = STRINGS[lang] ? STRINGS[lang] : STRINGS.en;
+    currentLang = STRINGS[lang] ? lang : 'en';
+    var dict = STRINGS[currentLang];
     var nodes = document.querySelectorAll('[data-i18n]');
     for (var i = 0; i < nodes.length; i++) {
       var key = nodes[i].getAttribute('data-i18n');
@@ -1140,14 +1184,34 @@
         nodes[i].innerHTML = dict[key];
       }
     }
-    document.documentElement.lang = HTML_LANG[lang] || 'en';
+    document.documentElement.lang = HTML_LANG[currentLang] || 'en';
     var btns = document.querySelectorAll('.lang-switch button');
     for (var j = 0; j < btns.length; j++) {
-      var isActive = btns[j].getAttribute('data-lang') === lang;
+      var isActive = btns[j].getAttribute('data-lang') === currentLang;
       btns[j].classList.toggle('active', isActive);
       btns[j].setAttribute('aria-pressed', isActive ? 'true' : 'false');
     }
-    try { localStorage.setItem(STORAGE_KEY, lang); } catch (e) {}
+    try { localStorage.setItem(STORAGE_KEY, currentLang); } catch (e) {}
+    refreshEditButtonLabel();
+  }
+
+  function refreshEditButtonLabel() {
+    var dict = STRINGS[currentLang] || STRINGS.en;
+    var btn = document.getElementById('editToggleBtn');
+    if (!btn) return;
+    btn.textContent = editMode ? dict.btnDone : dict.btnEdit;
+    btn.classList.toggle('active', editMode);
+    btn.setAttribute('aria-pressed', editMode ? 'true' : 'false');
+  }
+
+  function setEditMode(on) {
+    editMode = on;
+    var sheets = document.querySelectorAll('.sheet');
+    for (var i = 0; i < sheets.length; i++) {
+      sheets[i].setAttribute('contenteditable', on ? 'true' : 'false');
+    }
+    document.body.classList.toggle('edit-mode', on);
+    refreshEditButtonLabel();
   }
 
   var switchBtns = document.querySelectorAll('.lang-switch button');
@@ -1155,6 +1219,15 @@
     switchBtns[k].addEventListener('click', function () {
       applyLang(this.getAttribute('data-lang'));
     });
+  }
+
+  var editBtn = document.getElementById('editToggleBtn');
+  if (editBtn) {
+    editBtn.addEventListener('click', function () { setEditMode(!editMode); });
+  }
+  var exportBtn = document.getElementById('exportPdfBtn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', function () { window.print(); });
   }
 
   var saved = null;
